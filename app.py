@@ -5,6 +5,7 @@ from io import StringIO
 import pysrt
 import re
 import spacy
+python -m spacy download en_core_web_sm
 
 # Welcome text
 st.title('Movie CEFR level.')
@@ -31,7 +32,7 @@ if uploaded_file is not None:
             subs = StringIO(uploaded_file.getvalue().decode('iso-8859-1')).read()
         except:
             pass
-    
+
     data = pd.DataFrame(data={'subtitles':[subs]})
     
     # Regular expressions
