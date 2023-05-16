@@ -1,3 +1,4 @@
+pip==23.1.2
 imbalanced-learn==0.10.1
 matplotlib==3.6.3
 numpy==1.23.5
