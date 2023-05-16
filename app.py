@@ -21,7 +21,8 @@ model = load_model()
 uploaded_file = st.file_uploader(label='Choose a file with subtitles in English', type=['txt','srt'])
 st.write('---')
 
-# Processing user's data
+
+# Text processing
 ## Regular expressions
 HTML = re.compile('<[^>]*>')                    # html тэги меняем на пробел
 COMMENTS = re.compile('[\(\[][A-Za-z ]+[\)\]]') # комменты в скобках меняем на пробел
@@ -48,13 +49,14 @@ def data_cleaning(text):
 
 ## SpaCy-lemmatization
 def spacy_lemmatization(text):
-    # Инициализируем spacy 'en_core_web_sm' модель
+    # Initialize spacy 'en_core_web_sm' model
     nlp = spacy.load('en_core_web_sm')
-    # Лемматизация
+    # Lemmatization
     text = ' '.join([token.lemma_ for token in nlp(text)])
     return text
 
-# Uploading file
+# Processing user's data
+## Uploading file
 if uploaded_file is not None:
     try:
         subs = StringIO(uploaded_file.getvalue().decode('utf-8')).read()
@@ -66,10 +68,11 @@ if uploaded_file is not None:
 
     data = pd.DataFrame(data={'subtitles':[subs]})
     
+    ## Applying text processing functions
     data['subtitles'] = data['subtitles'].apply(lambda x: data_cleaning(x))
     data['subtitles'] = data['subtitles'].apply(lambda x: spacy_lemmatization(x))
     
-    # Прогноз для введенных с экрана данных
+    ## Forecast for data entered from the screen
     data['english_level'] = model.predict(data)
     level = data.loc[0, 'english_level']
     
