@@ -5,7 +5,6 @@ from io import StringIO
 import pysrt
 import re
 import spacy
-python -m spacy download en_core_web_sm
 
 # Welcome text
 st.title('Movie CEFR level.')
@@ -23,7 +22,39 @@ uploaded_file = st.file_uploader(label='Choose a file with subtitles in English'
 st.write('---')
 
 # Processing user's data
+## Regular expressions
+HTML = re.compile('<[^>]*>')                    # html тэги меняем на пробел
+COMMENTS = re.compile('[\(\[][A-Za-z ]+[\)\]]') # комменты в скобках меняем на пробел
+UPPER = re.compile('[[A-Za-z ]+[\:\]]')         # указания на того кто говорит (BOBBY:)
+LETTERS = re.compile('[^a-zA-Z\'.,!? ]')        # все что не буквы меняем на пробел 
+DOTS = re.compile('[\.]+')                      # многоточие меняем на точку
+SPACES = re.compile('\s{2,}')                   # два или более пробельных символа подряд
+SYMB = re.compile("[^\w\d'\s]")                 # знаки препинания кроме апострофа
 
+## Data cleaning
+def data_cleaning(text):
+    text = HTML.sub(' ', text)                     # html тэги меняем на пробел
+    text = UPPER.sub(' ', text)                    # указания на того кто говорит (BOBBY:)
+    text = COMMENTS.sub(' ', text)                 # комменты в скобках меняем на пробел
+    text = LETTERS.sub(' ', text)                  # все что не буквы меняем на пробел
+    text = DOTS.sub(r'.', text)                    # многоточие меняем на точку
+    text = SYMB.sub('', text)                      # знаки препинания кроме апострофа на пустую строку
+    text = SPACES.sub(' ', text)                   # повторяющиеся пробелы меняем на один пробел
+    text = re.sub('www', '', text)                 # кое-где остаётся www, то же меняем на пустую строку
+    text = text.lstrip()                           # обрезка пробелов слева
+    text = text.encode('ascii', 'ignore').decode() # удаляем все что не ascii символы   
+    text = text.lower()                            # текст в нижний регистр
+    return text
+
+## SpaCy-lemmatization
+def spacy_lemmatization(text):
+    # Инициализируем spacy 'en_core_web_sm' модель
+    nlp = spacy.load('en_core_web_sm')
+    # Лемматизация
+    text = ' '.join([token.lemma_ for token in nlp(text)])
+    return text
+
+# Uploading file
 if uploaded_file is not None:
     try:
         subs = StringIO(uploaded_file.getvalue().decode('utf-8')).read()
@@ -34,38 +65,6 @@ if uploaded_file is not None:
             pass
 
     data = pd.DataFrame(data={'subtitles':[subs]})
-    
-    # Regular expressions
-    HTML = re.compile('<[^>]*>')                    # html тэги меняем на пробел
-    COMMENTS = re.compile('[\(\[][A-Za-z ]+[\)\]]') # комменты в скобках меняем на пробел
-    UPPER = re.compile('[[A-Za-z ]+[\:\]]')         # указания на того кто говорит (BOBBY:)
-    LETTERS = re.compile('[^a-zA-Z\'.,!? ]')        # все что не буквы меняем на пробел 
-    DOTS = re.compile('[\.]+')                      # многоточие меняем на точку
-    SPACES = re.compile('\s{2,}')                   # два или более пробельных символа подряд
-    SYMB = re.compile("[^\w\d'\s]")                 # знаки препинания кроме апострофа
-
-    # Data cleaning
-    def data_cleaning(text):
-        text = HTML.sub(' ', text)                     # html тэги меняем на пробел
-        text = UPPER.sub(' ', text)                    # указания на того кто говорит (BOBBY:)
-        text = COMMENTS.sub(' ', text)                 # комменты в скобках меняем на пробел
-        text = LETTERS.sub(' ', text)                  # все что не буквы меняем на пробел
-        text = DOTS.sub(r'.', text)                    # многоточие меняем на точку
-        text = SYMB.sub('', text)                      # знаки препинания кроме апострофа на пустую строку
-        text = SPACES.sub(' ', text)                   # повторяющиеся пробелы меняем на один пробел
-        text = re.sub('www', '', text)                 # кое-где остаётся www, то же меняем на пустую строку
-        text = text.lstrip()                           # обрезка пробелов слева
-        text = text.encode('ascii', 'ignore').decode() # удаляем все что не ascii символы   
-        text = text.lower()                            # текст в нижний регистр
-        return text
-
-    # SpaCy-lemmatization
-    def spacy_lemmatization(text):
-        # Инициализируем spacy 'en_core_web_sm' модель
-        nlp = spacy.load('en_core_web_sm')
-        # Лемматизация
-        text = ' '.join([token.lemma_ for token in nlp(text)])
-        return text
     
     data['subtitles'] = data['subtitles'].apply(lambda x: data_cleaning(x))
     data['subtitles'] = data['subtitles'].apply(lambda x: spacy_lemmatization(x))
